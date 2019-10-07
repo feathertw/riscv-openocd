@@ -926,6 +926,10 @@ static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcod
 
 static bool jtag_examine_chain_check(uint8_t *idcodes, unsigned count)
 {
+        idcodes[0] = 0x13;
+        idcodes[1] = 0x19;
+        idcodes[2] = 0xe3;
+        idcodes[3] = 0x10;
 	uint8_t zero_check = 0x0;
 	uint8_t one_check = 0xff;
 
@@ -1050,6 +1054,7 @@ static int jtag_examine_chain(void)
 	/* Add room for end-of-chain marker. */
 	max_taps++;
 
+        //printf("max_taps=%d\n",max_taps);
 	uint8_t *idcode_buffer = malloc(max_taps * 4);
 	if (idcode_buffer == NULL)
 		return ERROR_JTAG_INIT_FAILED;

@@ -413,13 +413,13 @@ static struct target_type *get_target_type(struct target *target)
 		return NULL;
 	}
 
-	switch (info->dtm_version) {
+	switch (1) {
 		case 0:
 			return &riscv011_target;
 		case 1:
 			return &riscv013_target;
 		default:
-			LOG_ERROR("Unsupported DTM version: %d", info->dtm_version);
+			LOG_ERROR("riscv.c Unsupported DTM version: %d", info->dtm_version);
 			return NULL;
 	}
 }

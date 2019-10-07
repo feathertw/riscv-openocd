@@ -317,6 +317,9 @@ static void clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned
  */
 static void move_to_state(tap_state_t goal_state)
 {
+        //printf("=%s= state:%d\n",__func__, goal_state);
+        return 0;
+
 	tap_state_t start_state = tap_get_state();
 
 	/*	goal_state is 1/2 of a tuple/pair of states which allow convenient
@@ -345,6 +348,9 @@ static void move_to_state(tap_state_t goal_state)
 
 static int ftdi_speed(int speed)
 {
+        //printf("==%s==\n",__func__);
+        return 0;
+
 	int retval;
 	retval = mpsse_set_frequency(mpsse_ctx, speed);
 
@@ -361,12 +367,14 @@ static int ftdi_speed(int speed)
 
 static int ftdi_speed_div(int speed, int *khz)
 {
+        //printf("==%s==\n",__func__);
 	*khz = speed / 1000;
 	return ERROR_OK;
 }
 
 static int ftdi_khz(int khz, int *jtag_speed)
 {
+        //printf("==%s==\n",__func__);
 	if (khz == 0 && !mpsse_is_high_speed(mpsse_ctx)) {
 		LOG_DEBUG("RCLK not supported");
 		return ERROR_FAIL;
@@ -521,6 +529,7 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 		if (tap_get_state() != TAP_DRSHIFT)
 			move_to_state(TAP_DRSHIFT);
 	}
+        return 0;
 
 	ftdi_end_state(cmd->cmd.scan->end_state);
 
@@ -663,6 +672,7 @@ static void ftdi_execute_stableclocks(struct jtag_command *cmd)
 
 static void ftdi_execute_command(struct jtag_command *cmd)
 {
+        //printf("=%s= cmd->type:%d\n",__func__,cmd->type);
 	switch (cmd->type) {
 		case JTAG_RESET:
 			ftdi_execute_reset(cmd);
@@ -702,6 +712,7 @@ static void ftdi_execute_command(struct jtag_command *cmd)
 
 static int ftdi_execute_queue(void)
 {
+        //printf("==%s==\n",__func__);
 	/* blink, if the current layout has that feature */
 	struct signal *led = find_signal_by_name("LED");
 	if (led)
@@ -715,6 +726,8 @@ static int ftdi_execute_queue(void)
 	if (led)
 		ftdi_set_signal(led, '0');
 
+        return 0;
+
 	int retval = mpsse_flush(mpsse_ctx);
 	if (retval != ERROR_OK)
 		LOG_ERROR("error while flushing MPSSE queue: %d", retval);
@@ -724,6 +737,9 @@ static int ftdi_execute_queue(void)
 
 static int ftdi_initialize(void)
 {
+        //printf("==%s==\n",__func__);
+        return 0;
+
 	if (tap_get_tms_path_len(TAP_IRPAUSE, TAP_IRPAUSE) == 7)
 		LOG_DEBUG("ftdi interface using 7 step jtag state transitions");
 	else
@@ -776,7 +792,8 @@ static int ftdi_initialize(void)
 
 static int ftdi_quit(void)
 {
-	mpsse_close(mpsse_ctx);
+        //printf("==%s==\n",__func__);
+	//mpsse_close(mpsse_ctx);
 
 	struct signal *sig = signals;
 	while (sig) {

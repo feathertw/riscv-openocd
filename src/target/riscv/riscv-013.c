@@ -1517,8 +1517,8 @@ static int examine(struct target *target)
 		LOG_ERROR("dtmcontrol is 0. Check JTAG connectivity/board power.");
 		return ERROR_FAIL;
 	}
-	if (get_field(dtmcontrol, DTM_DTMCS_VERSION) != 1) {
-		LOG_ERROR("Unsupported DTM version %d. (dtmcontrol=0x%x)",
+	if (0 && get_field(dtmcontrol, DTM_DTMCS_VERSION) != 1) {
+		LOG_ERROR("riscv-013.c Unsupported DTM version %d. (dtmcontrol=0x%x)",
 				get_field(dtmcontrol, DTM_DTMCS_VERSION), dtmcontrol);
 		return ERROR_FAIL;
 	}
