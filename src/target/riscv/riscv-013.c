@@ -27,6 +27,9 @@
 #include "program.h"
 #include "asm.h"
 #include "batch.h"
+#include <time.h>
+#include <string.h>
+#include "serial.h"
 
 #define DMI_DATA1 (DMI_DATA0 + 1)
 #define DMI_PROGBUF1 (DMI_PROGBUF0 + 1)
@@ -584,12 +587,99 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
+static int my_serial_open = 0;
+static serial_t *serial;
 /* If dmi_busy_encountered is non-NULL, this function will use it to tell the
  * caller whether DMI was ever busy during this call. */
 static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 		bool *dmi_busy_encountered, int dmi_op, uint32_t address,
 		uint32_t data_out, int timeout_sec, bool exec, bool ensure_success)
 {
+
+        char my_log[100];
+        char last_log[100];
+
+        if(!my_serial_open) {
+                my_serial_open = 1;
+                serial = serial_new();
+                if (serial_open(serial, "/dev/lattic_uart", 115200) < 0) {
+                        printf(stderr, "!!!!!serial_open(): %s!!!!!\n", serial_errmsg(serial));
+                        exit(1);
+                }
+        }
+        //serial_close(serial);
+        //serial_free(serial);
+
+        int ret;
+        uint8_t buffer[7];
+
+	switch (dmi_op) {
+		case DMI_OP_WRITE:
+                        buffer[0]= 0x5a;
+                        buffer[1]= address|0x80;
+                        buffer[2]= (data_out>>0)  & 0xff;
+                        buffer[3]= (data_out>>8)  & 0xff;
+                        buffer[4]= (data_out>>16) & 0xff;
+                        buffer[5]= (data_out>>24) & 0xff;
+                        buffer[6] = buffer[1]^buffer[2]^buffer[3]^buffer[4]^buffer[5];
+                        if (serial_write(serial, buffer, sizeof(buffer)) < 0) {
+                                printf("serial_write(): %s\n", serial_errmsg(serial));
+                                exit(1);
+                        }
+
+                        sprintf(my_log,"==DMI WRITE== addr:%02x data:%08x",address, data_out);
+			break;
+		case DMI_OP_READ:
+                        buffer[0]= 0x5a;
+                        buffer[1]= address;
+                        buffer[6] = buffer[1]^buffer[2]^buffer[3]^buffer[4]^buffer[5];
+                        if (serial_write(serial, buffer, sizeof(buffer)) < 0) {
+                                printf("serial_write(): %s\n", serial_errmsg(serial));
+                                exit(1);
+                        }
+                        if ((ret = serial_read(serial, buffer, sizeof(buffer), 500)) < 0) {
+                                printf("serial_read(): %s\n", serial_errmsg(serial));
+                                exit(1);
+                        }
+                        if(buffer[0]==0x5a && buffer[1]^buffer[2]^buffer[3]^buffer[4]^buffer[5]^buffer[6]==0x0) {
+                                uint32_t v = 0;
+                                v |= buffer[2] << 0;
+                                v |= buffer[3] << 8;
+                                v |= buffer[4] << 16;
+                                v |= buffer[5] << 24;
+                                *data_in = v;
+                        }
+
+                        sprintf(my_log,"==DMI READ == addr:%02x data:%08x",address, *data_in);
+			break;
+		case DMI_OP_NOP:
+                        printf("==DMI NOP==\n");
+			break;
+		default:
+                        printf("==DMI ERROR==\n");
+                        break;
+	}
+        if(strcmp(last_log,my_log)) {
+                struct timespec spec;
+                clock_gettime(CLOCK_REALTIME, &spec);
+                long m  = spec.tv_sec/60%60;
+                time_t s  = spec.tv_sec%60;
+                long ms = spec.tv_nsec / 1.0e6;
+                strcpy(last_log, my_log);
+
+                //printf("%02d:%"PRIdMAX".%03ld %s\n",m,(intmax_t)s, ms, my_log);
+        }
+	return ERROR_OK;
+
+
+
+
+
+
+
+
+
+
 	select_dmi(target);
 
 	dmi_status_t status;
